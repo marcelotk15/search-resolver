@@ -46,14 +46,6 @@ export class Search extends AppClient {
   private searchEncodeURI: (x: string) => string
   private basePath: string
 
-  private addSalesChannel = (url: string, salesChannel?: string | number) => {
-    if (!salesChannel) {
-      return url
-    }
-
-    return url.concat(`&sc=${salesChannel}`)
-  }
-
   private addCompleteSpecifications = (url: string) => {
     if (!url.includes('?')) {
       return `${url}?compSpecs=true`
@@ -94,12 +86,10 @@ export class Search extends AppClient {
       }
     )
 
-  public productsByEan = (ids: string[], salesChannel?: string | number) =>
+  public productsByEan = (ids: string[], args?: Partial<SearchArgs>) =>
     this.get<SearchProduct[]>(
       this.addCompleteSpecifications(
-        this.addSalesChannel(`/pub/products/search?${ids
-          .map(id => `fq=alternateIds_Ean:${id}`)
-          .join('&')}`, salesChannel)
+        this.productsByIdentifierUrl(ids.map(id => `fq=alternateIds_Ean:${id}`).join('&'), args)
       ),
       { metric: 'search-productByEan' }
     )
@@ -116,12 +106,10 @@ export class Search extends AppClient {
     })
   }
 
-  public productsById = (ids: string[], salesChannel?: string | number) =>
+  public productsById = (ids: string[], args?: Partial<SearchArgs>) =>
     this.get<SearchProduct[]>(
       this.addCompleteSpecifications(
-        this.addSalesChannel(`/pub/products/search?${ids
-          .map(id => `fq=productId:${id}`)
-          .join('&')}`, salesChannel)
+        this.productsByIdentifierUrl(ids.map(id => `fq=productId:${id}`).join('&'), args)
       ),
       { metric: 'search-productById' }
     )
@@ -134,12 +122,10 @@ export class Search extends AppClient {
       }
     )
 
-  public productsByReference = (ids: string[], salesChannel?: string | number) =>
+  public productsByReference = (ids: string[], args?: Partial<SearchArgs>) =>
     this.get<SearchProduct[]>(
       this.addCompleteSpecifications(
-        this.addSalesChannel(`/pub/products/search?${ids
-          .map(id => `fq=alternateIds_RefId:${id}`)
-          .join('&')}`, salesChannel)
+        this.productsByIdentifierUrl(ids.map(id => `fq=alternateIds_RefId:${id}`).join('&'), args)
       ),
       { metric: 'search-productByReference' }
     )
@@ -152,12 +138,10 @@ export class Search extends AppClient {
       }
     )
 
-  public productsBySku = (skuIds: string[], salesChannel?: string | number) =>
+  public productsBySku = (skuIds: string[], args?: Partial<SearchArgs>) =>
     this.get<SearchProduct[]>(
       this.addCompleteSpecifications(
-        this.addSalesChannel(`/pub/products/search?${skuIds
-          .map(skuId => `fq=skuId:${skuId}`)
-          .join('&')}`, salesChannel)
+        this.productsByIdentifierUrl(skuIds.map(skuId => `fq=skuId:${skuId}`).join('&'), args)
       ),
       { metric: 'search-productsBySku' }
     )
@@ -322,6 +306,31 @@ export class Search extends AppClient {
     if (completeSpecifications) {
       url = this.addCompleteSpecifications(url)
     }
+    return url
+  }
+
+  private productsByIdentifierUrl(
+    identifiedValues: string,
+    {
+      from,
+      to,
+      salesChannel
+    }: Partial<SearchArgs> = {}
+  ) {
+    let url = `/api/catalog_system/pub/products/search?${identifiedValues}`
+
+    if (from != null && from > -1) {
+      url += `&_from=${from}`
+    }
+
+    if (to != null && to > -1) {
+      url += `&_to=${to}`
+    }
+
+    if (salesChannel) {
+      url += `&fq=isAvailablePerSalesChannel_${salesChannel}:1`
+    }
+
     return url
   }
 }

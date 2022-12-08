@@ -73,6 +73,8 @@ interface ProductsByIdentifierArgs {
   field: 'id' | 'ean' | 'reference' | 'sku'
   values: [string]
   salesChannel?: string
+  from?: number
+  to?: number
 }
 
 const inputToSearchCrossSelling = {
@@ -392,7 +394,7 @@ export const queries = {
 
   productsByIdentifier: async (
     _: any,
-    args: ProductsByIdentifierArgs,
+    { field, values, ...args}: ProductsByIdentifierArgs,
     ctx: Context
   ) => {
     const {
@@ -400,20 +402,25 @@ export const queries = {
     } = ctx
 
     let products = [] as SearchProduct[]
-    const { field, values, salesChannel } = args
+
+    if (args.to && args.to > 2500) {
+      throw new UserInputError(
+        `The maximum value allowed for the 'to' argument is 2500`
+      )
+    }
 
     switch (field) {
       case 'id':
-        products = await search.productsById(values, salesChannel)
+        products = await search.productsById(values, args)
         break
       case 'ean':
-        products = await search.productsByEan(values, salesChannel)
+        products = await search.productsByEan(values, args)
         break
       case 'reference':
-        products = await search.productsByReference(values, salesChannel)
+        products = await search.productsByReference(values, args)
         break
       case 'sku':
-        products = await search.productsBySku(values, salesChannel)
+        products = await search.productsBySku(values, args)
         break
     }
 
